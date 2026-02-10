@@ -66,6 +66,14 @@ function App() {
         }
     };
 
+    const scrollToForm = (type) => {
+        setFormData(prev => ({ ...prev, membershipType: type }));
+        const element = document.getElementById('contact');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div>
             {/* Header */}
@@ -139,26 +147,62 @@ function App() {
             </section>
 
             {/* Membership Section */}
-            <section id="membership" className="container">
-                <h2 className="section-title">Membership Model</h2>
-                <div className="membership-features">
-                    <h3>Golden Moments Membership</h3>
-                    <p>Annual membership program for exclusive benefits.</p>
-
-                    <ul className="membership-list">
-                        <li>One-time annual membership fee</li>
-                        <li>10–15% discount on all services for one full year</li>
-                        <li>Participate in company-organized tours and trips</li>
-                        <li>Access to monthly meetups and workshops at discounted rates</li>
-                        <li>Encourages social connection and active living</li>
-                    </ul>
-
-                    <div style={{ background: '#FEF3C7', padding: '1.5rem', borderRadius: '0.5rem', marginTop: '2rem' }}>
-                        <h4 className="text-accent" style={{ color: '#92400E', marginBottom: '0.5rem' }}>Annual Fee</h4>
-                        <p><strong>Individual:</strong> ₹1000 per year</p>
-                        <p><strong>Couple:</strong> ₹1750 per year</p>
+            <section id="membership" style={{ backgroundColor: '#F9FAFB', padding: '4rem 2rem' }}>
+                <div className="container">
+                    <div className="text-center mb-5">
+                        <h2 className="section-title">Membership Plans</h2>
+                        <p style={{ color: '#6B7280' }}>Join our community and enjoy exclusive benefits all year round</p>
                     </div>
-                    <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6B7280' }}>* Non-members can avail services at standard pricing without discounts.</p>
+
+                    <div className="pricing-grid">
+                        {/* Individual Plan */}
+                        <div className="pricing-card">
+                            <h3 className="plan-title">Individual</h3>
+                            <div className="plan-price">
+                                <span className="currency">₹</span>1000
+                                <span className="period">/ PER YEAR</span>
+                            </div>
+                            <ul className="plan-features">
+                                <li><span className="check">✓</span> All service discounts</li>
+                                <li><span className="check">✓</span> Priority booking</li>
+                                <li><span className="check">✓</span> Tour participation</li>
+                                <li><span className="check">✓</span> Workshop access</li>
+                                <li><span className="check">✓</span> Family updates</li>
+                            </ul>
+                            <button
+                                className="btn btn-outline"
+                                onClick={() => scrollToForm('individual')}
+                            >
+                                CHOOSE INDIVIDUAL
+                            </button>
+                        </div>
+
+                        {/* Couple Plan */}
+                        <div className="pricing-card">
+                            <h3 className="plan-title">Couple</h3>
+                            <div className="plan-price">
+                                <span className="currency">₹</span>1750
+                                <span className="period">/ PER YEAR</span>
+                            </div>
+                            <ul className="plan-features">
+                                <li><span className="check">✓</span> All service discounts for both</li>
+                                <li><span className="check">✓</span> Joint activity participation</li>
+                                <li><span className="check">✓</span> Shared tour experiences</li>
+                                <li><span className="check">✓</span> Workshop access for two</li>
+                                <li><span className="check">✓</span> Regular family updates</li>
+                            </ul>
+                            <button
+                                className="btn btn-primary-dark"
+                                onClick={() => scrollToForm('couple')}
+                            >
+                                CHOOSE COUPLE
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="text-center mt-4">
+                        <p style={{ fontSize: '0.9rem', color: '#6B7280' }}>* Non-members can avail services at standard pricing without discounts.</p>
+                    </div>
                 </div>
             </section>
 
@@ -228,8 +272,8 @@ function App() {
                             <div className="form-group">
                                 <label>Membership Type</label>
                                 <div className="checkbox-group">
-                                    <label className="checkbox-item"><input type="radio" name="membershipType" value="individual" onChange={handleInputChange} /> Individual (₹1000/yr)</label>
-                                    <label className="checkbox-item"><input type="radio" name="membershipType" value="couple" onChange={handleInputChange} /> Couple (₹1750/yr)</label>
+                                    <label className="checkbox-item"><input type="radio" name="membershipType" value="individual" checked={formData.membershipType === 'individual'} onChange={handleInputChange} /> Individual (₹1000/yr)</label>
+                                    <label className="checkbox-item"><input type="radio" name="membershipType" value="couple" checked={formData.membershipType === 'couple'} onChange={handleInputChange} /> Couple (₹1750/yr)</label>
                                 </div>
                             </div>
 
