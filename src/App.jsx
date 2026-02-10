@@ -52,17 +52,27 @@ function App() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Sanitize form data: convert empty strings to null for date fields and others
+            const sanitizedData = Object.fromEntries(
+                Object.entries(formData).map(([key, value]) => {
+                    if (value === '') return [key, null];
+                    return [key, value];
+                })
+            );
+
             const { data, error } = await supabase
                 .from('membership_applications')
-                .insert([formData]);
+                .insert([sanitizedData]);
 
             if (error) throw error;
 
             alert('Application Submitted Successfully!');
             console.log('Success:', data);
+
+            // Optional: Reset form or redirect
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('Error submitting application. Please try again.');
+            alert('Error submitting application. Please try again. ' + (error.message || ''));
         }
     };
 
