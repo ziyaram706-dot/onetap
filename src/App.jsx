@@ -30,6 +30,11 @@ function App() {
         declarationRules: false
     });
 
+    const [photos, setPhotos] = useState({
+        member: null,
+        spouse: null
+    });
+
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         if (type === 'checkbox') {
@@ -49,9 +54,48 @@ function App() {
         }
     };
 
+    const handlePhotoChange = (e, type) => {
+        if (e.target.files && e.target.files[0]) {
+            setPhotos(prev => ({ ...prev, [type]: e.target.files[0] }));
+        }
+    };
+
+    const uploadPhoto = async (file) => {
+        if (!file) return null;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { data, error } = await supabase.storage
+            .from('member-photos')
+            .upload(filePath, file);
+
+        if (error) {
+            console.error('Error uploading photo:', error);
+            throw error;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('member-photos')
+            .getPublicUrl(filePath);
+
+        return publicUrl;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Upload photos first
+            let memberPhotoUrl = null;
+            let spousePhotoUrl = null;
+
+            if (photos.member) {
+                memberPhotoUrl = await uploadPhoto(photos.member);
+            }
+            if (photos.spouse && formData.membershipType === 'couple') {
+                spousePhotoUrl = await uploadPhoto(photos.spouse);
+            }
+
             // Sanitize form data: convert empty strings to null for date fields and others
             const sanitizedData = Object.fromEntries(
                 Object.entries(formData).map(([key, value]) => {
@@ -59,6 +103,10 @@ function App() {
                     return [key, value];
                 })
             );
+
+            // Add photo URLs to data
+            sanitizedData.photo_url_member = memberPhotoUrl;
+            sanitizedData.photo_url_spouse = spousePhotoUrl;
 
             const { data, error } = await supabase
                 .from('membership_applications')
@@ -276,6 +324,11 @@ function App() {
                                     <input type="email" name="email" className="form-control" onChange={handleInputChange} placeholder="Enter email" />
                                 </div>
                             </div>
+                            <div className="form-group">
+                                <label>Member Photo</label>
+                                <input type="file" accept="image/*" className="form-control" onChange={(e) => handlePhotoChange(e, 'member')} />
+                                <small style={{ color: '#6B7280' }}>Upload a recent passport size photo.</small>
+                            </div>
 
                             {/* Section 2 */}
                             <div className="form-section-header">Section 2: Membership Details</div>
@@ -285,6 +338,13 @@ function App() {
                                     <label className="checkbox-item"><input type="radio" name="membershipType" value="individual" checked={formData.membershipType === 'individual'} onChange={handleInputChange} /> Individual (₹1000/yr)</label>
                                     <label className="checkbox-item"><input type="radio" name="membershipType" value="couple" checked={formData.membershipType === 'couple'} onChange={handleInputChange} /> Couple (₹1750/yr)</label>
                                 </div>
+                                {formData.membershipType === 'couple' && (
+                                    <div style={{ marginTop: '1rem' }}>
+                                        <label>Spouse / Partner Photo</label>
+                                        <input type="file" accept="image/*" className="form-control" onChange={(e) => handlePhotoChange(e, 'spouse')} />
+                                        <small style={{ color: '#6B7280' }}>Upload a recent photo of your spouse/partner.</small>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Section 3 */}
