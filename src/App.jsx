@@ -265,7 +265,7 @@ function App() {
             </section>
 
             {/* Team Section */}
-            <section id="team" style={{ backgroundColor: 'var(--white)' }}>
+            {/* <section id="team" style={{ backgroundColor: 'var(--white)' }}>
                 <div className="container">
                     <h2 className="section-title">Our Team</h2>
                     <div className="team-grid">
@@ -287,7 +287,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* Application Form Section */}
             <section id="contact" className="form-section">
