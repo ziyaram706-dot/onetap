@@ -22,62 +22,63 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
-export default function DashboardLayout() {
-    const { user, role, signOut } = useAuth();
+const NAV_ITEMS = [
+    {
+        label: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+        roles: ['super_admin', 'manager', 'telecaller', 'marketing_lead']
+    },
+    {
+        label: 'Users',
+        href: '/dashboard/users',
+        icon: Users,
+        roles: ['super_admin']
+    },
+    {
+        label: 'Leads',
+        href: '/dashboard/leads',
+        icon: Phone,
+        roles: ['super_admin', 'manager', 'telecaller', 'marketing_lead']
+    },
+    {
+        label: 'Registration Form',
+        href: '/register',
+        icon: ClipboardList,
+        roles: ['super_admin', 'manager', 'telecaller']
+    },
+    {
+        label: 'Service Requests',
+        href: '/dashboard/requests',
+        icon: ClipboardList,
+        roles: ['super_admin', 'manager']
+    }
+];
+
+function Sidebar({ role, signOut, navigate, isMobile, closeMobileMenu }) {
     const location = useLocation();
-    const navigate = useNavigate();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Safety check: if role is undefined, default to empty string or handle gracefully
+    const currentRole = role || '';
+
+    const filteredNavItems = NAV_ITEMS.filter(item =>
+        item.roles.includes(currentRole)
+    );
 
     const handleSignOut = async () => {
         await signOut();
         navigate('/login');
     };
 
-    const navItems = [
-        {
-            label: 'Dashboard',
-            href: '/dashboard',
-            icon: LayoutDashboard,
-            roles: ['super_admin', 'manager', 'telecaller', 'marketing_lead']
-        },
-        {
-            label: 'Users',
-            href: '/dashboard/users',
-            icon: Users,
-            roles: ['super_admin']
-        },
-        {
-            label: 'Leads',
-            href: '/dashboard/leads',
-            icon: Phone,
-            roles: ['super_admin', 'manager', 'telecaller', 'marketing_lead']
-            // Filter logic will be inside the page, but all can access the route
-        },
-        {
-            label: 'Registration Form',
-            href: '/register',
-            icon: ClipboardList,
-            roles: ['super_admin', 'manager', 'telecaller']
-        },
-        {
-            label: 'Service Requests',
-            href: '/dashboard/requests',
-            icon: ClipboardList,
-            roles: ['super_admin', 'manager']
-        }
-    ];
-
-    const filteredNavItems = navItems.filter(item => item.roles.includes(role));
-
-    const SidebarContent = () => (
+    return (
         <div className="flex flex-col h-full bg-slate-900 text-white">
             <div className="p-6 border-b border-slate-700">
                 <h1 className="text-xl font-bold flex items-center gap-2">
                     OneTap Lead
                 </h1>
-                <p className="text-xs text-slate-400 mt-1 capitalize">Role: {role?.replace('_', ' ')}</p>
+                <p className="text-xs text-slate-400 mt-1 capitalize">Role: {currentRole.replace('_', ' ')}</p>
             </div>
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 {filteredNavItems.map((item) => (
                     <Link
                         key={item.href}
@@ -86,7 +87,7 @@ export default function DashboardLayout() {
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-slate-800 text-slate-300'
                             }`}
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={() => isMobile && closeMobileMenu && closeMobileMenu()}
                     >
                         <item.icon size={20} />
                         <span>{item.label}</span>
@@ -101,12 +102,23 @@ export default function DashboardLayout() {
             </div>
         </div>
     );
+}
+
+export default function DashboardLayout() {
+    const { user, role, signOut } = useAuth();
+    const navigate = useNavigate();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
             {/* Desktop Sidebar */}
             <aside className="hidden md:block w-64 fixed inset-y-0 left-0 z-50">
-                <SidebarContent />
+                <Sidebar
+                    role={role}
+                    signOut={signOut}
+                    navigate={navigate}
+                    isMobile={false}
+                />
             </aside>
 
             {/* Mobile Header & Content Wrapper */}
@@ -119,8 +131,14 @@ export default function DashboardLayout() {
                                     <Menu size={24} />
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="p-0 w-64 border-r-slate-800 bg-slate-900">
-                                <SidebarContent />
+                            <SheetContent side="left" className="p-0 w-64 border-r-slate-800 bg-slate-900 text-white">
+                                <Sidebar
+                                    role={role}
+                                    signOut={signOut}
+                                    navigate={navigate}
+                                    isMobile={true}
+                                    closeMobileMenu={() => setIsMobileMenuOpen(false)}
+                                />
                             </SheetContent>
                         </Sheet>
                         <h2 className="text-lg font-semibold text-slate-800 md:hidden">OneTap</h2>
@@ -141,7 +159,7 @@ export default function DashboardLayout() {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
+                                <DropdownMenuItem onClick={async () => { await signOut(); navigate('/login'); }}>Sign Out</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
