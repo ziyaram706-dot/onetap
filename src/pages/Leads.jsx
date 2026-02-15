@@ -30,7 +30,16 @@ import {
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Search, Filter } from 'lucide-react';
+import { PlusCircle, Search, Filter, MoreHorizontal } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function Leads() {
     const { user, role } = useAuth();
@@ -47,7 +56,9 @@ export default function Leads() {
         status: 'new'
     });
     const [submitting, setSubmitting] = useState(false);
-    const [updatingId, setUpdatingId] = useState(null); // For inline status updates
+
+    // Filters
+    const [filterStatus, setFilterStatus] = useState('all');
 
     const isManagerOrAdmin = role === 'super_admin' || role === 'manager';
     const isTelecaller = role === 'telecaller';
@@ -62,19 +73,16 @@ export default function Leads() {
     const fetchLeads = async () => {
         try {
             setLoading(true);
-            // Join with profiles to get assigned_to name
-            // Note: Supabase JS join syntax
             let query = supabase
                 .from('leads')
                 .select(`
             *,
-            assigned_to_profile:profiles!assigned_to(full_name),
+            assigned_to_profile:profiles!assigned_to(full_name, email),
             created_by_profile:profiles!created_by(full_name)
         `)
                 .order('created_at', { ascending: false });
 
             const { data, error } = await query;
-
             if (error) throw error;
             setLeads(data || []);
         } catch (err) {
@@ -139,7 +147,6 @@ export default function Leads() {
     };
 
     const updateLeadStatus = async (id, newStatus) => {
-        setUpdatingId(id);
         try {
             const { error } = await supabase
                 .from('leads')
@@ -147,20 +154,14 @@ export default function Leads() {
                 .eq('id', id);
 
             if (error) throw error;
-
-            // Optimistic update or refetch
             setLeads(leads.map(lead => lead.id === id ? { ...lead, status: newStatus } : lead));
         } catch (err) {
-            console.error("Error updating status:", err);
+            console.error(err);
             alert(err.message);
-        } finally {
-            setUpdatingId(null);
         }
     };
 
     const updatePaymentStatus = async (id, newStatus) => {
-        if (!isManagerOrAdmin) return;
-        setUpdatingId(id);
         try {
             const { error } = await supabase
                 .from('leads')
@@ -168,36 +169,39 @@ export default function Leads() {
                 .eq('id', id);
 
             if (error) throw error;
-
             setLeads(leads.map(lead => lead.id === id ? { ...lead, payment_status: newStatus } : lead));
         } catch (err) {
-            console.error("Error updating payment:", err);
+            console.error(err);
             alert(err.message);
-        } finally {
-            setUpdatingId(null);
         }
-    };
+    }
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'new': return 'bg-blue-100 text-blue-800';
-            case 'called': return 'bg-yellow-100 text-yellow-800';
-            case 'waiting': return 'bg-orange-100 text-orange-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            case 'completed': return 'bg-green-100 text-green-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
+    const filteredLeads = leads.filter(lead => {
+        if (filterStatus === 'all') return true;
+        return lead.status === filterStatus;
+    });
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-                    <p className="text-muted-foreground">Manage and track your leads.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Leads</h2>
+                    <p className="text-muted-foreground">Manage leads and track conversions.</p>
                 </div>
-                <div className="flex gap-2">
-                    {/* Search/Filter can go here */}
+                <div className="flex items-center gap-2">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-[180px]">
+                            <Filter className="mr-2 h-4 w-4" />
+                            <SelectValue placeholder="Filter Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="called">Called</SelectItem>
+                            <SelectItem value="waiting">Waiting</SelectItem>
+                            <SelectItem value="converted">Converted</SelectItem>
+                        </SelectContent>
+                    </Select>
                     {isManagerOrAdmin && (
                         <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
                             <DialogTrigger asChild>
@@ -270,77 +274,91 @@ export default function Leads() {
                 </div>
             </div>
 
-            <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
+            <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Customer</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>History</TableHead>
-                            <TableHead>Registration</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead className="hidden md:table-cell">Status</TableHead>
+                            <TableHead className="hidden md:table-cell">Type</TableHead>
+                            <TableHead className="hidden md:table-cell">Assigned To</TableHead>
                             {isManagerOrAdmin && <TableHead>Payment</TableHead>}
-                            <TableHead>Assigned To</TableHead>
-                            <TableHead>Created By</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center h-24">Loading leads...</TableCell>
+                                <TableCell colSpan={6} className="h-24 text-center">Loading...</TableCell>
                             </TableRow>
-                        ) : leads.length === 0 ? (
+                        ) : filteredLeads.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center h-24">No leads found.</TableCell>
+                                <TableCell colSpan={6} className="h-24 text-center">No leads found.</TableCell>
                             </TableRow>
                         ) : (
-                            leads.map((lead) => (
+                            filteredLeads.map((lead) => (
                                 <TableRow key={lead.id}>
-                                    <TableCell className="font-medium">{lead.customer_name}</TableCell>
-                                    <TableCell>{lead.phone_number}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={lead.medical_history}>{lead.medical_history}</TableCell>
-                                    <TableCell className="capitalize">{lead.registration_type}</TableCell>
                                     <TableCell>
-                                        <Select
-                                            value={lead.status}
-                                            onValueChange={(val) => updateLeadStatus(lead.id, val)}
-                                            disabled={updatingId === lead.id}
-                                        >
-                                            <SelectTrigger className={`h-8 w-[130px] ${getStatusColor(lead.status)} border-0`}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="new">New</SelectItem>
-                                                <SelectItem value="called">Called</SelectItem>
-                                                <SelectItem value="waiting">Waiting</SelectItem>
-                                                <SelectItem value="rejected">Rejected</SelectItem>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="font-medium">{lead.customer_name}</div>
+                                        <div className="text-sm text-muted-foreground">{lead.phone_number}</div>
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        <StatusBadge status={lead.status} />
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell capitalize">
+                                        {lead.registration_type}
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        {lead.assigned_to_profile ? (
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-6 w-6">
+                                                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${lead.assigned_to_profile.full_name}`} />
+                                                    <AvatarFallback>{lead.assigned_to_profile.full_name[0]}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="text-sm">{lead.assigned_to_profile.full_name}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-sm">Unassigned</span>
+                                        )}
                                     </TableCell>
                                     {isManagerOrAdmin && (
                                         <TableCell>
-                                            <Select
-                                                value={lead.payment_status}
-                                                onValueChange={(val) => updatePaymentStatus(lead.id, val)}
-                                                disabled={updatingId === lead.id}
-                                            >
-                                                <SelectTrigger className={`h-8 w-[140px] ${lead.payment_status === 'received' ? 'text-green-700 font-medium' : ''}`}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="pending">Pending</SelectItem>
-                                                    <SelectItem value="received">Received</SelectItem>
-                                                    <SelectItem value="not_received">Not Received</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <Badge variant={lead.payment_status === 'received' ? 'default' : 'secondary'} className={lead.payment_status === 'received' ? 'bg-green-600 hover:bg-green-700' : ''}>
+                                                {lead.payment_status === 'received' ? 'Paid' : 'Pending'}
+                                            </Badge>
                                         </TableCell>
                                     )}
-                                    <TableCell>
-                                        {lead.assigned_to_profile?.full_name || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                        {lead.created_by_profile?.full_name || 'System'}
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(lead.phone_number)}>
+                                                    Copy Phone
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                                                {['new', 'called', 'waiting', 'completed', 'rejected'].map(s => (
+                                                    <DropdownMenuItem key={s} onClick={() => updateLeadStatus(lead.id, s)}>
+                                                        Mark as {s.charAt(0).toUpperCase() + s.slice(1)}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                                {isManagerOrAdmin && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuLabel>Payment</DropdownMenuLabel>
+                                                        <DropdownMenuItem onClick={() => updatePaymentStatus(lead.id, 'received')}>Mark Paid</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => updatePaymentStatus(lead.id, 'pending')}>Mark Pending</DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -350,4 +368,20 @@ export default function Leads() {
             </div>
         </div>
     );
+}
+
+function StatusBadge({ status }) {
+    const styles = {
+        new: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+        called: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+        waiting: "bg-orange-100 text-orange-800 hover:bg-orange-200",
+        completed: "bg-green-100 text-green-800 hover:bg-green-200",
+        rejected: "bg-red-100 text-red-800 hover:bg-red-200",
+    };
+
+    return (
+        <Badge variant="outline" className={`${styles[status] || styles.new} border-transparent`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+        </Badge>
+    )
 }
