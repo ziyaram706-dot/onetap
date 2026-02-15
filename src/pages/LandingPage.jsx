@@ -512,7 +512,7 @@ function RegistrationForm({ selectedPlan }) {
                                     <SelectContent>
                                         {agents.map((agent) => (
                                             <SelectItem key={agent.id} value={agent.id}>
-                                                {agent.full_name || agent.email} ({agent.role})
+                                                {agent.role === 'super_admin' ? 'Abhiram' : (agent.full_name || agent.email)} ({agent.role})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
