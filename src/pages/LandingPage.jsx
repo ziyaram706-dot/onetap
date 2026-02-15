@@ -128,7 +128,7 @@ export default function LandingPage() {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-8"> {/* Increased top padding to avoid overlap */}
-                        <Card className="border-2 hover:border-primary transition-colors">
+                        <Card className="border-2 hover:border-primary transition-colors hover:shadow-lg">
                             <CardHeader>
                                 <CardTitle className="text-2xl">Individual</CardTitle>
                                 <CardDescription>For single seniors living alone</CardDescription>
@@ -143,13 +143,13 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Individual</Button>
+                                <Button className="w-full" variant="outline" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Individual</Button>
                             </CardFooter>
                         </Card>
 
                         {/* Adjust overlap with margin top */}
-                        <Card className="border-2 border-primary shadow-lg relative mt-12 md:mt-0 lg:mt-0"> {/* Reset mt for larger screens if using grid, but added padding to container */}
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10 shadow-sm">
+                        <Card className="border-2 border-primary shadow-xl relative mt-12 md:mt-0 lg:mt-0 transform md:-translate-y-4">
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap z-20 shadow-md">
                                 MOST POPULAR
                             </div>
                             <CardHeader>
@@ -166,7 +166,7 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Couple</Button>
+                                <Button className="w-full font-bold shadow-md" size="lg" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Couple</Button>
                             </CardFooter>
                         </Card>
                     </div>
