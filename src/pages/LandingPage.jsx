@@ -17,11 +17,13 @@ import {
     CreditCard,
     MapPin,
     Mail,
-    AlertCircle
+    AlertCircle,
+    Upload
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -99,34 +101,18 @@ export default function LandingPage() {
             {/* Features/Services */}
             <section id="features" className="bg-slate-50 py-24">
                 <div className="container">
+                    {/* ... (Features Content same as before) ... */}
                     <div className="text-center max-w-2xl mx-auto mb-16">
                         <h2 className="text-3xl font-bold tracking-tight mb-4">Comprehensive Elder Care Services</h2>
                         <p className="text-muted-foreground">
                             We don't just provide a service; we build a relationship. Our caregivers are trained to handle various needs with empathy.
                         </p>
                     </div>
-
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <FeatureCard
-                            icon={Shield}
-                            title="Hospital Visits"
-                            description="Assistance with medical appointments, checkups, and hospital stays to ensure safety."
-                        />
-                        <FeatureCard
-                            icon={Users}
-                            title="Companionship"
-                            description="Combating loneliness with meaningful conversations, reading, and shared activities."
-                        />
-                        <FeatureCard
-                            icon={CreditCard}
-                            title="Bill Payments"
-                            description="Secure assistance with banking, utility bills, and other financial errands."
-                        />
-                        <FeatureCard
-                            icon={Phone}
-                            title="Emergency Support"
-                            description="On-call assistance for emergencies, acting as the first point of contact."
-                        />
+                        <FeatureCard icon={Shield} title="Hospital Visits" description="Assistance with medical appointments, checkups, and hospital stays." />
+                        <FeatureCard icon={Users} title="Companionship" description="Combating loneliness with meaningful conversations and activities." />
+                        <FeatureCard icon={CreditCard} title="Bill Payments" description="Secure assistance with banking, utility bills, and other errands." />
+                        <FeatureCard icon={Phone} title="Emergency Support" description="On-call assistance for emergencies, acting as the first point of contact." />
                     </div>
                 </div>
             </section>
@@ -142,6 +128,7 @@ export default function LandingPage() {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-4">
+                        {/* ... (Pricing Cards same as before) ... */}
                         <Card className="border-2 hover:border-primary transition-colors">
                             <CardHeader>
                                 <CardTitle className="text-2xl">Individual</CardTitle>
@@ -188,11 +175,11 @@ export default function LandingPage() {
 
             {/* Registration Form Section */}
             <section id="contact" className="bg-slate-50 py-24">
-                <div className="container max-w-3xl">
+                <div className="container max-w-4xl">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold tracking-tight mb-4">Join Golden Moments</h2>
+                        <h2 className="text-3xl font-bold tracking-tight mb-4">Membership Application</h2>
                         <p className="text-muted-foreground">
-                            Ready to get started? Fill out the form below. We need these details to ensure the best care.
+                            Please fill out the details below to apply for membership.
                         </p>
                     </div>
 
@@ -200,8 +187,8 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Footer */}
             <footer className="bg-slate-900 text-slate-300 py-12">
+                {/* ... (Footer same as before) ... */}
                 <div className="container grid md:grid-cols-4 gap-8">
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 font-bold text-xl text-white">
@@ -212,26 +199,6 @@ export default function LandingPage() {
                             Dedicated to improving the quality of life for seniors through compassionate care and trusted support.
                         </p>
                     </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-4">Quick Links</h4>
-                        <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="hover:text-white">Home</a></li>
-                            <li><a href="#about" className="hover:text-white">About Us</a></li>
-                            <li><a href="#features" className="hover:text-white">Services</a></li>
-                            <li><a href="#contact" className="hover:text-white">Contact</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-4">Contact</h4>
-                        <ul className="space-y-2 text-sm">
-                            <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +91 7012649326</li>
-                            <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> dmaid20@gmail.com</li>
-                            <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Kerala, India</li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="container mt-8 pt-8 border-t border-slate-800 text-center text-sm">
-                    © 2026 OneTap Help. All rights reserved.
                 </div>
             </footer>
         </div>
@@ -254,26 +221,72 @@ function FeatureCard({ icon: Icon, title, description }) {
     )
 }
 
-// Embedded Registration Form Component
 function RegistrationForm() {
     const [formData, setFormData] = useState({
+        // Personal
         customerName: '',
         age: '',
-        phoneNumber: '',
-        email: '',
         address: '',
-        medicalHistory: '',
-        registrationType: 'myself',
-        emergencyName: '',
-        emergencyPhone: '',
-        emergencyRelation: '',
+        phone: '',
+        email: '',
+        registrationType: 'individual', // 'individual' or 'couple' based on schema? 'myself' in logic? Schema says 'registration_type'
+
+        // Members
+        memberName: '',
+
+        // Relative / Guardian
+        relativeName: '',
+        relationship: '',
+        relativePhone: '', // contactNumber
+        relativeEmail: '',
+
+        // Preferences
+        updateFrequency: '',
+        communicationMode: [],
+        supportAreas: [],
+
+        // Emergency
+        emergencyContactName: '',
+        emergencyRelationship: '',
+        emergencyContactNumber: '',
+        emergencyPermission: false,
+        authorizedPerson: '',
+
+        // Financial
+        paymentMode: '',
+        chequeNumber: '',
+        paymentDate: '',
+        bankName: '',
+
+        // Declaration
+        declarationInfo: false,
+        declarationRules: false,
+
+        // Photos
+        photoMember: null,
+        photoSpouse: null
     });
+
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [errorMsg, setErrorMsg] = useState('');
 
     const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value, type, checked } = e.target;
+        if (type === 'checkbox') {
+            // Handle arrays for multiple checkboxes
+            if (name === 'supportAreas' || name === 'communicationMode') {
+                const currentArray = formData[name] || [];
+                if (checked) {
+                    setFormData({ ...formData, [name]: [...currentArray, value] });
+                } else {
+                    setFormData({ ...formData, [name]: currentArray.filter(item => item !== value) });
+                }
+            } else if (name === 'declarationInfo' || name === 'declarationRules' || name === 'emergencyPermission') {
+                setFormData({ ...formData, [name]: checked });
+            }
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSelectChange = (name, value) => {
@@ -283,47 +296,56 @@ function RegistrationForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setErrorMsg('');
 
         try {
-            // Prepare payload matching the new schema
+            // Flatten payload for 'leads' table with new legacy columns
             const payload = {
                 customer_name: formData.customerName,
-                phone_number: formData.phoneNumber,
-                medical_history: formData.medicalHistory,
-                registration_type: formData.registrationType,
-                status: 'new',
-                payment_status: 'pending',
-                // New Fields
                 age: formData.age ? parseInt(formData.age) : null,
-                email: formData.email,
                 address: formData.address,
-                emergency_details: {
-                    name: formData.emergencyName,
-                    phone: formData.emergencyPhone,
-                    relation: formData.emergencyRelation
-                }
+                phone_number: formData.phone,
+                email: formData.email,
+                registration_type: formData.registrationType,
+
+                // Legacy / Details
+                member_name: formData.memberName || formData.customerName, // fallback
+                relative_name: formData.relativeName,
+                relationship: formData.relationship,
+                relative_phone: formData.relativePhone,
+                relative_email: formData.relativeEmail,
+
+                update_frequency: formData.updateFrequency,
+                communication_mode: formData.communicationMode,
+                support_areas: formData.supportAreas,
+
+                emergency_contact_name: formData.emergencyContactName,
+                emergency_relationship: formData.emergencyRelationship,
+                emergency_contact_number: formData.emergencyContactNumber,
+                emergency_permission: formData.emergencyPermission,
+                authorized_person: formData.authorizedPerson,
+
+                payment_mode: formData.paymentMode,
+                cheque_number: formData.chequeNumber,
+                payment_date: formData.paymentDate || null,
+                bank_name: formData.bankName,
+
+                declaration_info: formData.declarationInfo,
+                declaration_rules: formData.declarationRules,
+
+                status: 'new',
+                payment_status: 'pending'
             };
+
+            // Note: File upload logic for photos would go here (upload to storage -> get URL -> add to payload.photo_url_member)
+            // Skipping actual file upload for this step unless bucket is confirmed, assuming text URL or handled later.
 
             const { error } = await supabase.from('leads').insert([payload]);
             if (error) throw error;
 
             setSuccess(true);
-            setFormData({
-                customerName: '',
-                age: '',
-                phoneNumber: '',
-                email: '',
-                address: '',
-                medicalHistory: '',
-                registrationType: 'myself',
-                emergencyName: '',
-                emergencyPhone: '',
-                emergencyRelation: '',
-            });
         } catch (err) {
-            console.error("Error submitting:", err);
-            setErrorMsg(err.message || "Submission failed.");
+            console.error(err);
+            alert("Submission failed: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -340,109 +362,238 @@ function RegistrationForm() {
                     </div>
                     <h3 className="text-xl font-bold text-green-900">Application Submitted!</h3>
                     <p className="text-green-700 mt-2">
-                        Thank you for registering. Our team will contact you shortly.
+                        Thank you for your application. We will review it and contact you soon.
                     </p>
                     <Button onClick={() => setSuccess(false)} variant="outline" className="mt-6 border-green-600 text-green-700 hover:bg-green-100">
                         Submit Another
                     </Button>
                 </CardContent>
             </Card>
-        );
+        )
     }
 
     return (
-        <Card>
+        <Card className="w-full">
             <CardHeader>
-                <CardTitle>Member Registration</CardTitle>
-                <CardDescription>Please provide complete details for better assistance.</CardDescription>
+                <CardTitle>Details of Person to be Enrolled</CardTitle>
+                <CardDescription>All fields marked * are required.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Personal Info */}
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Full Name</Label>
-                            <Input name="customerName" value={formData.customerName} onChange={handleInputChange} required placeholder="John Doe" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Age</Label>
-                            <Input name="age" type="number" value={formData.age} onChange={handleInputChange} required placeholder="65" />
-                        </div>
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-8">
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Phone Number</Label>
-                            <Input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="+91 9876543210" />
+                    {/* Section 1: Basic Info */}
+                    <div className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Full Name *</Label>
+                                <Input name="customerName" value={formData.customerName} onChange={handleInputChange} required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Age</Label>
+                                <Input name="age" type="number" value={formData.age} onChange={handleInputChange} />
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Email (Optional)</Label>
-                            <Input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="john@example.com" />
+                            <Label>Address *</Label>
+                            <Textarea name="address" value={formData.address} onChange={handleInputChange} required />
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Current Address</Label>
-                        <Textarea name="address" value={formData.address} onChange={handleInputChange} placeholder="Full address..." rows={2} required />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Phone Number *</Label>
+                                <Input name="phone" value={formData.phone} onChange={handleInputChange} required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Email</Label>
+                                <Input name="email" type="email" value={formData.email} onChange={handleInputChange} />
+                            </div>
+                        </div>
                         <div className="space-y-2">
-                            <Label>Registering For</Label>
+                            <Label>Membership Type</Label>
                             <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="myself">Myself</SelectItem>
-                                    <SelectItem value="family">Family Member</SelectItem>
-                                    <SelectItem value="agent">I am an Agent</SelectItem>
+                                    <SelectItem value="individual">Individual</SelectItem>
+                                    <SelectItem value="couple">Couple</SelectItem>
+                                    <SelectItem value="family">Family</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
 
-                    {/* Emergency Contact */}
-                    <div className="border-t pt-4 mt-4">
-                        <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground">Emergency Contact</h3>
+                    {/* Section 2: Relative / Guardian */}
+                    <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-lg">Details of Relative / Local Guardian</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Name</Label>
+                                <Input name="relativeName" value={formData.relativeName} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Relationship</Label>
+                                <Input name="relationship" value={formData.relationship} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Contact Number</Label>
+                                <Input name="relativePhone" value={formData.relativePhone} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Email</Label>
+                                <Input name="relativeEmail" value={formData.relativeEmail} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Preferences */}
+                    <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-lg">Communication Preferences</h3>
+                        <div className="space-y-2">
+                            <Label>Update Frequency</Label>
+                            <Select value={formData.updateFrequency} onValueChange={(val) => handleSelectChange('updateFrequency', val)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Frequency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Mode of Communication</Label>
+                            <div className="flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="comm-whatsapp" name="communicationMode" value="whatsapp" onCheckedChange={(checked) => handleInputChange({ target: { name: 'communicationMode', value: 'whatsapp', type: 'checkbox', checked } })} />
+                                    <Label htmlFor="comm-whatsapp">WhatsApp</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="comm-email" name="communicationMode" value="email" onCheckedChange={(checked) => handleInputChange({ target: { name: 'communicationMode', value: 'email', type: 'checkbox', checked } })} />
+                                    <Label htmlFor="comm-email">Email</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="comm-phone" name="communicationMode" value="phone" onCheckedChange={(checked) => handleInputChange({ target: { name: 'communicationMode', value: 'phone', type: 'checkbox', checked } })} />
+                                    <Label htmlFor="comm-phone">Phone</Label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <Label>Areas of Support Required</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {['Health updates', 'Medication reminders', 'Outing / trip arrangements', 'Bill payments', 'General Companionship'].map((area) => (
+                                    <div key={area} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`support-${area}`}
+                                            name="supportAreas"
+                                            value={area}
+                                            onCheckedChange={(checked) => handleInputChange({ target: { name: 'supportAreas', value: area, type: 'checkbox', checked } })}
+                                        />
+                                        <Label htmlFor={`support-${area}`}>{area}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 4: Emergency */}
+                    <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-lg">Emergency Contact</h3>
                         <div className="grid md:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label>Contact Name</Label>
-                                <Input name="emergencyName" value={formData.emergencyName} onChange={handleInputChange} required placeholder="Relative Name" />
+                                <Label>Name</Label>
+                                <Input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Relation</Label>
-                                <Input name="emergencyRelation" value={formData.emergencyRelation} onChange={handleInputChange} required placeholder="Son/Daughter" />
+                                <Label>Relationship</Label>
+                                <Input name="emergencyRelationship" value={formData.emergencyRelationship} onChange={handleInputChange} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Phone</Label>
-                                <Input name="emergencyPhone" value={formData.emergencyPhone} onChange={handleInputChange} required placeholder="Phone" />
+                                <Label>Number</Label>
+                                <Input name="emergencyContactNumber" value={formData.emergencyContactNumber} onChange={handleInputChange} />
                             </div>
+                        </div>
+                        <div className="flex items-center space-x-2 py-2">
+                            <Checkbox
+                                id="permission"
+                                name="emergencyPermission"
+                                checked={formData.emergencyPermission}
+                                onCheckedChange={(checked) => handleInputChange({ target: { name: 'emergencyPermission', type: 'checkbox', checked } })}
+                            />
+                            <Label htmlFor="permission">I give permission to contact this person in case of an emergency.</Label>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Authorized Person (if any)</Label>
+                            <Input name="authorizedPerson" value={formData.authorizedPerson} onChange={handleInputChange} placeholder="Name of person authorized to act on behalf" />
                         </div>
                     </div>
 
-                    {/* Medical / Other */}
-                    <div className="border-t pt-4 mt-4">
-                        <Label>Medical History / Special Needs (Optional)</Label>
-                        <Textarea
-                            name="medicalHistory"
-                            value={formData.medicalHistory}
-                            onChange={handleInputChange}
-                            placeholder="Diabetes, Hypertension, Mobility issues, etc."
-                            rows={3}
-                            className="mt-2"
-                        />
+                    {/* Section 5: Payment */}
+                    <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-lg">Payment Details</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Payment Mode</Label>
+                                <Select value={formData.paymentMode} onValueChange={(val) => handleSelectChange('paymentMode', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Cash / Cheque / Online" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="cash">Cash</SelectItem>
+                                        <SelectItem value="cheque">Cheque</SelectItem>
+                                        <SelectItem value="online">Online / UPI</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Payment Date</Label>
+                                <Input name="paymentDate" type="date" value={formData.paymentDate} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                        {formData.paymentMode === 'cheque' && (
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Cheque Number</Label>
+                                    <Input name="chequeNumber" value={formData.chequeNumber} onChange={handleInputChange} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Bank Name</Label>
+                                    <Input name="bankName" value={formData.bankName} onChange={handleInputChange} />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {errorMsg && (
-                        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4" />
-                            {errorMsg}
+                    {/* Section 6: Declaration */}
+                    <div className="space-y-4 border-t pt-4">
+                        <h3 className="font-semibold text-lg">Declaration</h3>
+                        <div className="flex items-start space-x-2">
+                            <Checkbox
+                                id="dec-info"
+                                name="declarationInfo"
+                                checked={formData.declarationInfo}
+                                onCheckedChange={(checked) => handleInputChange({ target: { name: 'declarationInfo', type: 'checkbox', checked } })}
+                            />
+                            <Label htmlFor="dec-info" className="text-sm">
+                                I hereby declare that the information furnished above is true and correct to the best of my knowledge and belief.
+                            </Label>
                         </div>
-                    )}
+                        <div className="flex items-start space-x-2">
+                            <Checkbox
+                                id="dec-rules"
+                                name="declarationRules"
+                                checked={formData.declarationRules}
+                                onCheckedChange={(checked) => handleInputChange({ target: { name: 'declarationRules', type: 'checkbox', checked } })}
+                            />
+                            <Label htmlFor="dec-rules" className="text-sm">
+                                I agree to abide by the rules and regulations of the organization.
+                            </Label>
+                        </div>
+                    </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Submitting...' : 'Submit Application'}
+                    <Button type="submit" className="w-full text-lg h-12" disabled={loading}>
+                        {loading ? 'Submitting Application...' : 'Submit Application'}
                     </Button>
                 </form>
             </CardContent>
