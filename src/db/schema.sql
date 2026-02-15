@@ -1,8 +1,10 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- 1. Create Tables
+
 -- Create profiles table
-create table profiles (
+create table if not exists profiles (
   id uuid references auth.users(id) on delete cascade not null primary key,
   email text,
   full_name text,
@@ -13,20 +15,8 @@ create table profiles (
 -- Enable RLS on profiles
 alter table profiles enable row level security;
 
--- Policies for profiles
-create policy "Public profiles are viewable by everyone." on profiles for select using (true);
-create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
-create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
-
--- Super Admin can manage all profiles (bypass RLS for setup)
--- Note: is_super_admin() uses security definer to avoid recursion
-create policy "Super Admins can manage all profiles"
-  on profiles
-  for all
-  using ( is_super_admin() );
-
 -- Create leads table
-create table leads (
+create table if not exists leads (
   id uuid default uuid_generate_v4() primary key,
   customer_name text not null,
   phone_number text,
@@ -43,12 +33,7 @@ create table leads (
 -- Enable RLS on leads
 alter table leads enable row level security;
 
--- Policies for leads
-
--- 1. Super Admin can do everything
--- (We assume super_admin is checking role in profiles)
--- But for simplicity in policies, we can use a helper function or just check profiles.
--- Better to have a secure function to check role.
+-- 2. Define Helper Functions (Must be before policies that use them)
 
 create or replace function public.is_super_admin()
 returns boolean as $$
@@ -80,16 +65,27 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- 3. Create Policies
+
+-- Policies for profiles
+create policy "Public profiles are viewable by everyone." on profiles for select using (true);
+create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
+create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
+
+create policy "Super Admins can manage all profiles"
+  on profiles
+  for all
+  using ( is_super_admin() );
+
+-- Policies for leads
+
 -- Super Admin Policy
 create policy "Super Admin can do everything on leads"
   on leads
   for all
   using ( is_super_admin() );
 
--- Manager Policy
--- View: created_by = auth.uid() OR assigned_to = their telecaller (but we don't have hierarchy yet).
--- Requirement: "manager added lead details should not be visible on another managers table".
--- So just created_by = auth.uid().
+-- Manager Policies
 create policy "Managers can view own leads"
   on leads
   for select
@@ -110,37 +106,24 @@ create policy "Managers can delete own leads"
   for delete
   using ( is_manager() and created_by = auth.uid() );
 
--- Telecaller Policy
--- View: assigned_to = auth.uid()
+-- Telecaller Policies
 create policy "Telecallers can view assigned leads"
   on leads
   for select
   using ( is_telecaller() and assigned_to = auth.uid() );
 
--- Update: assigned_to = auth.uid()
--- IMPORTANT: Telecallers should NOT update payment_status.
--- We handle this with a trigger or just trust the policy (policy allows update access to row).
--- The prompt says "this shall only be filled by managers and super admins".
--- We can use a trigger to prevent payment_status change if role is telecaller.
 create policy "Telecallers can update assigned leads"
   on leads
   for update
   using ( is_telecaller() and assigned_to = auth.uid() );
 
--- Public Registration (Insert only)
--- "registered registerations from website should also visible"
-create policy "Public can insert leads (registration)"
-  on leads
-  for insert
-  with check ( auth.role() = 'anon' ); 
-  -- or just true if we want authenticated users to register too?
-  -- "user should be able to choose registering for myself or my family or i am agent"
-  -- Agents are authenticated. Public is anon.
-  -- So allow insert for all?
+-- Public/Registration Policy
 create policy "Anyone can insert leads"
   on leads
   for insert
   with check ( true );
+
+-- 4. Create Triggers
 
 -- Trigger to protect payment_status for Telecallers
 create or replace function check_payment_status_update()
@@ -153,8 +136,10 @@ begin
 end;
 $$ language plpgsql;
 
+-- Drop trigger if exists to avoid error on rerun
+drop trigger if exists protect_payment_status on leads;
+
 create trigger protect_payment_status
   before update on leads
   for each row
   execute function check_payment_status_update();
-
