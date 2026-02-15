@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -11,16 +11,17 @@ import {
     Shield,
     Phone,
     Users,
-    Clock,
+    ArrowRight,
     Menu,
     X,
     CreditCard,
-    ArrowRight,
     MapPin,
-    Mail
+    Mail,
+    AlertCircle
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -130,7 +131,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Pricing - Added extra padding to top to avoid overlap */}
+            {/* Pricing */}
             <section id="pricing" className="py-24">
                 <div className="container">
                     <div className="text-center max-w-2xl mx-auto mb-20">
@@ -160,8 +161,8 @@ export default function LandingPage() {
                             </CardFooter>
                         </Card>
 
-                        <Card className="border-2 border-primary shadow-lg relative mt-6 md:mt-0">
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
+                        <Card className="border-2 border-primary shadow-lg relative mt-12 md:mt-0">
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10">
                                 MOST POPULAR
                             </div>
                             <CardHeader>
@@ -191,7 +192,7 @@ export default function LandingPage() {
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-bold tracking-tight mb-4">Join Golden Moments</h2>
                         <p className="text-muted-foreground">
-                            Ready to get started? Fill out the form below and we will get in touch with you shortly.
+                            Ready to get started? Fill out the form below. We need these details to ensure the best care.
                         </p>
                     </div>
 
@@ -257,13 +258,19 @@ function FeatureCard({ icon: Icon, title, description }) {
 function RegistrationForm() {
     const [formData, setFormData] = useState({
         customerName: '',
+        age: '',
         phoneNumber: '',
+        email: '',
+        address: '',
         medicalHistory: '',
         registrationType: 'myself',
-        agentId: '',
+        emergencyName: '',
+        emergencyPhone: '',
+        emergencyRelation: '',
     });
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -276,14 +283,26 @@ function RegistrationForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg('');
+
         try {
+            // Prepare payload matching the new schema
             const payload = {
                 customer_name: formData.customerName,
                 phone_number: formData.phoneNumber,
                 medical_history: formData.medicalHistory,
                 registration_type: formData.registrationType,
                 status: 'new',
-                payment_status: 'pending'
+                payment_status: 'pending',
+                // New Fields
+                age: formData.age ? parseInt(formData.age) : null,
+                email: formData.email,
+                address: formData.address,
+                emergency_details: {
+                    name: formData.emergencyName,
+                    phone: formData.emergencyPhone,
+                    relation: formData.emergencyRelation
+                }
             };
 
             const { error } = await supabase.from('leads').insert([payload]);
@@ -292,14 +311,19 @@ function RegistrationForm() {
             setSuccess(true);
             setFormData({
                 customerName: '',
+                age: '',
                 phoneNumber: '',
+                email: '',
+                address: '',
                 medicalHistory: '',
                 registrationType: 'myself',
-                agentId: '',
+                emergencyName: '',
+                emergencyPhone: '',
+                emergencyRelation: '',
             });
         } catch (err) {
             console.error("Error submitting:", err);
-            alert("Submission failed. Please try again.");
+            setErrorMsg(err.message || "Submission failed.");
         } finally {
             setLoading(false);
         }
@@ -316,7 +340,7 @@ function RegistrationForm() {
                     </div>
                     <h3 className="text-xl font-bold text-green-900">Application Submitted!</h3>
                     <p className="text-green-700 mt-2">
-                        Thank you for registering. Our team will contact you shortly to finalize your membership.
+                        Thank you for registering. Our team will contact you shortly.
                     </p>
                     <Button onClick={() => setSuccess(false)} variant="outline" className="mt-6 border-green-600 text-green-700 hover:bg-green-100">
                         Submit Another
@@ -330,45 +354,93 @@ function RegistrationForm() {
         <Card>
             <CardHeader>
                 <CardTitle>Member Registration</CardTitle>
-                <CardDescription>Enter your details to request membership.</CardDescription>
+                <CardDescription>Please provide complete details for better assistance.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Personal Info */}
                     <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Full Name</Label>
                             <Input name="customerName" value={formData.customerName} onChange={handleInputChange} required placeholder="John Doe" />
                         </div>
                         <div className="space-y-2">
+                            <Label>Age</Label>
+                            <Input name="age" type="number" value={formData.age} onChange={handleInputChange} required placeholder="65" />
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
                             <Label>Phone Number</Label>
                             <Input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="+91 9876543210" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Email (Optional)</Label>
+                            <Input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="john@example.com" />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Registering For</Label>
-                        <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="myself">Myself</SelectItem>
-                                <SelectItem value="family">Family Member</SelectItem>
-                                <SelectItem value="agent">I am an Agent</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Label>Current Address</Label>
+                        <Textarea name="address" value={formData.address} onChange={handleInputChange} placeholder="Full address..." rows={2} required />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Registering For</Label>
+                            <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="myself">Myself</SelectItem>
+                                    <SelectItem value="family">Family Member</SelectItem>
+                                    <SelectItem value="agent">I am an Agent</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Emergency Contact */}
+                    <div className="border-t pt-4 mt-4">
+                        <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground">Emergency Contact</h3>
+                        <div className="grid md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label>Contact Name</Label>
+                                <Input name="emergencyName" value={formData.emergencyName} onChange={handleInputChange} required placeholder="Relative Name" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Relation</Label>
+                                <Input name="emergencyRelation" value={formData.emergencyRelation} onChange={handleInputChange} required placeholder="Son/Daughter" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Phone</Label>
+                                <Input name="emergencyPhone" value={formData.emergencyPhone} onChange={handleInputChange} required placeholder="Phone" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Medical / Other */}
+                    <div className="border-t pt-4 mt-4">
                         <Label>Medical History / Special Needs (Optional)</Label>
                         <Textarea
                             name="medicalHistory"
                             value={formData.medicalHistory}
                             onChange={handleInputChange}
-                            placeholder="Any medical conditions or specific requirements we should know about..."
+                            placeholder="Diabetes, Hypertension, Mobility issues, etc."
                             rows={3}
+                            className="mt-2"
                         />
                     </div>
+
+                    {errorMsg && (
+                        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4" />
+                            {errorMsg}
+                        </div>
+                    )}
+
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? 'Submitting...' : 'Submit Application'}
                     </Button>
