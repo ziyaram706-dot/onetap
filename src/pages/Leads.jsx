@@ -235,7 +235,7 @@ export default function Leads() {
                             <SelectItem value="new">New</SelectItem>
                             <SelectItem value="called">Called</SelectItem>
                             <SelectItem value="waiting">Waiting</SelectItem>
-                            <SelectItem value="converted">Converted</SelectItem>
+                            <SelectItem value="completed">Converted</SelectItem>
                         </SelectContent>
                     </Select>
                     {isManagerOrAdmin && (
@@ -483,26 +483,28 @@ export default function Leads() {
                                     </div>
                                 </div>
                             </div>
-                        )}
-                        <DialogFooter className="flex justify-between items-center w-full">
-                            <div className="flex gap-2">
-                                {isManagerOrAdmin && selectedLead.payment_status !== 'received' && (
-                                    <Button variant="outline" className="text-green-600 border-green-200 hover:bg-green-50" onClick={() => updatePaymentStatus(selectedLead.id, 'received')}>
-                                        Mark as Received
-                                    </Button>
-                                )}
-                                {isManagerOrAdmin && selectedLead.payment_status === 'received' && (
-                                    <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50" onClick={() => updatePaymentStatus(selectedLead.id, 'pending')}>
-                                        Mark as Pending
-                                    </Button>
-                                )}
-                            </div>
-                            <Button onClick={() => setIsViewOpen(false)}>Close</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </Tabs>
-        </div>
+                            
+                            <DialogFooter className="flex justify-between items-center w-full mt-6 border-t pt-4">
+                                <div className="flex gap-2">
+                                    {isManagerOrAdmin && selectedLead.payment_status !== 'received' && (
+                                        <Button variant="outline" className="text-green-600 border-green-200 hover:bg-green-50" onClick={() => updatePaymentStatus(selectedLead.id, 'received')}>
+                                            Mark as Received
+                                        </Button>
+                                    )}
+                                    {isManagerOrAdmin && selectedLead.payment_status === 'received' && (
+                                        <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50" onClick={() => updatePaymentStatus(selectedLead.id, 'pending')}>
+                                            Mark as Pending
+                                        </Button>
+                                    )}
+                                </div>
+                                <Button onClick={() => setIsViewOpen(false)}>Close</Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </Tabs>
+        </div >
     );
 }
 
@@ -517,7 +519,7 @@ function StatusBadge({ status }) {
 
     return (
         <Badge variant="outline" className={`${styles[status] || styles.new} border-transparent`}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'New'}
         </Badge>
     )
 }
