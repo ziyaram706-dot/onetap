@@ -47,9 +47,32 @@ export const AuthProvider = ({ children }) => {
 
             if (error) {
                 console.error('Error fetching role:', error);
-            } else {
-                setRole(data?.role);
+                setLoading(false);
+                return;
             }
+
+            const userRole = data?.role;
+
+            // Enforcement: If member, check payment status
+            if (userRole === 'member') {
+                const { data: leadData, error: leadError } = await supabase
+                    .from('leads')
+                    .select('payment_status')
+                    .eq('created_by', userId)
+                    .single();
+
+                if (leadError || leadData?.payment_status !== 'received') {
+                    console.log('Access denied: Payment pending or lead not found.');
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    setRole(null);
+                    alert("Your account is pending review. Access will be granted once payment is confirmed by the administrator.");
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            setRole(userRole);
         } catch (err) {
             console.error('Unexpected error fetching role:', err);
         } finally {

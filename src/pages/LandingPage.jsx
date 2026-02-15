@@ -67,13 +67,27 @@ export default function LandingPage() {
                     </button>
                 </div>
 
-                {/* Mobile Menu */}
+                {/* Mobile Menu Overlay */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden border-b bg-background p-4 space-y-4">
-                        <a href="#features" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Services</a>
-                        <a href="#pricing" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Membership</a>
-                        <a href="#contact" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Join Now</a>
-                        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/login')}>Login</Button>
+                    <div className="md:hidden fixed inset-0 z-[100] bg-background animate-in slide-in-from-right duration-300">
+                        <div className="container flex h-16 items-center justify-between border-b">
+                            <div className="flex items-center gap-2 font-bold text-xl text-primary">
+                                <Heart className="h-6 w-6 fill-primary" />
+                                <span>OneTap Help</span>
+                            </div>
+                            <button onClick={() => setMobileMenuOpen(false)}>
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="container py-8 flex flex-col gap-6">
+                            <a href="#features" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Services</a>
+                            <a href="#pricing" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Membership</a>
+                            <a href="#contact" className="text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Join Now</a>
+                            <div className="pt-4 flex flex-col gap-4">
+                                <Button variant="outline" size="lg" className="w-full" onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}>Login</Button>
+                                <Button size="lg" className="w-full" onClick={() => { document.getElementById('contact').scrollIntoView(); setMobileMenuOpen(false); }}>Get Started</Button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </header>
@@ -246,7 +260,7 @@ function RegistrationForm({ selectedPlan }) {
         address: '',
         phone: '',
         email: '',
-        registrationType: selectedPlan === 'individual' ? 'myself' : (selectedPlan === 'couple' || selectedPlan === 'family' ? 'family' : 'myself'),
+        registrationType: 'myself',
         agentId: '',
 
         // Members
@@ -258,8 +272,8 @@ function RegistrationForm({ selectedPlan }) {
         relativePhone: '',
         relativeEmail: '',
 
-        // Preferences
-        updateFrequency: '',
+        // Service Needs
+        updateFrequency: 'weekly',
         communicationMode: [],
         supportAreas: [],
 
@@ -270,20 +284,22 @@ function RegistrationForm({ selectedPlan }) {
         emergencyPermission: false,
         authorizedPerson: '',
 
-        // Financial
-        paymentMode: '',
+        // Payment (Only for agent flow)
+        paymentMode: 'cash',
         chequeNumber: '',
         paymentDate: '',
         bankName: '',
 
         // Declaration
         declarationInfo: false,
-        declarationRules: false,
+        declarationRules: false
     });
 
+    // Sync registrationType when selectedPlan prop changes from parent
     React.useEffect(() => {
         if (selectedPlan) {
-            setFormData(prev => ({ ...prev, registrationType: selectedPlan }));
+            const mappedType = selectedPlan === 'individual' ? 'myself' : (selectedPlan === 'couple' || selectedPlan === 'family' ? 'family' : 'myself');
+            setFormData(prev => ({ ...prev, registrationType: mappedType }));
         }
     }, [selectedPlan]);
 
