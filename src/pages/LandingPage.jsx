@@ -18,12 +18,12 @@ import {
     MapPin,
     Mail,
     AlertCircle,
-    Upload
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -101,13 +101,13 @@ export default function LandingPage() {
             {/* Features/Services */}
             <section id="features" className="bg-slate-50 py-24">
                 <div className="container">
-                    {/* ... (Features Content same as before) ... */}
                     <div className="text-center max-w-2xl mx-auto mb-16">
                         <h2 className="text-3xl font-bold tracking-tight mb-4">Comprehensive Elder Care Services</h2>
                         <p className="text-muted-foreground">
                             We don't just provide a service; we build a relationship. Our caregivers are trained to handle various needs with empathy.
                         </p>
                     </div>
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <FeatureCard icon={Shield} title="Hospital Visits" description="Assistance with medical appointments, checkups, and hospital stays." />
                         <FeatureCard icon={Users} title="Companionship" description="Combating loneliness with meaningful conversations and activities." />
@@ -127,8 +127,7 @@ export default function LandingPage() {
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-4">
-                        {/* ... (Pricing Cards same as before) ... */}
+                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-8"> {/* Increased top padding to avoid overlap */}
                         <Card className="border-2 hover:border-primary transition-colors">
                             <CardHeader>
                                 <CardTitle className="text-2xl">Individual</CardTitle>
@@ -148,8 +147,9 @@ export default function LandingPage() {
                             </CardFooter>
                         </Card>
 
-                        <Card className="border-2 border-primary shadow-lg relative mt-12 md:mt-0">
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10">
+                        {/* Adjust overlap with margin top */}
+                        <Card className="border-2 border-primary shadow-lg relative mt-12 md:mt-0 lg:mt-0"> {/* Reset mt for larger screens if using grid, but added padding to container */}
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10 shadow-sm">
                                 MOST POPULAR
                             </div>
                             <CardHeader>
@@ -179,7 +179,7 @@ export default function LandingPage() {
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-bold tracking-tight mb-4">Membership Application</h2>
                         <p className="text-muted-foreground">
-                            Please fill out the details below to apply for membership.
+                            Please fill out the details below to create your account and apply for membership.
                         </p>
                     </div>
 
@@ -188,7 +188,6 @@ export default function LandingPage() {
             </section>
 
             <footer className="bg-slate-900 text-slate-300 py-12">
-                {/* ... (Footer same as before) ... */}
                 <div className="container grid md:grid-cols-4 gap-8">
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 font-bold text-xl text-white">
@@ -222,14 +221,18 @@ function FeatureCard({ icon: Icon, title, description }) {
 }
 
 function RegistrationForm() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
+        // Auth
+        password: '',
+
         // Personal
         customerName: '',
         age: '',
         address: '',
         phone: '',
         email: '',
-        registrationType: 'individual', // 'individual' or 'couple' based on schema? 'myself' in logic? Schema says 'registration_type'
+        registrationType: 'individual',
 
         // Members
         memberName: '',
@@ -237,7 +240,7 @@ function RegistrationForm() {
         // Relative / Guardian
         relativeName: '',
         relationship: '',
-        relativePhone: '', // contactNumber
+        relativePhone: '',
         relativeEmail: '',
 
         // Preferences
@@ -261,19 +264,15 @@ function RegistrationForm() {
         // Declaration
         declarationInfo: false,
         declarationRules: false,
-
-        // Photos
-        photoMember: null,
-        photoSpouse: null
     });
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         if (type === 'checkbox') {
-            // Handle arrays for multiple checkboxes
             if (name === 'supportAreas' || name === 'communicationMode') {
                 const currentArray = formData[name] || [];
                 if (checked) {
@@ -298,51 +297,82 @@ function RegistrationForm() {
         setLoading(true);
 
         try {
-            // Flatten payload for 'leads' table with new legacy columns
-            const payload = {
-                customer_name: formData.customerName,
-                age: formData.age ? parseInt(formData.age) : null,
-                address: formData.address,
-                phone_number: formData.phone,
+            if (!formData.email || !formData.password) {
+                throw new Error("Email and password are required for account creation.");
+            }
+
+            // 1. Sign Up User
+            const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
-                registration_type: formData.registrationType,
+                password: formData.password,
+                options: {
+                    data: {
+                        full_name: formData.customerName,
+                    }
+                }
+            });
 
-                // Legacy / Details
-                member_name: formData.memberName || formData.customerName, // fallback
-                relative_name: formData.relativeName,
-                relationship: formData.relationship,
-                relative_phone: formData.relativePhone,
-                relative_email: formData.relativeEmail,
+            if (authError) throw authError;
 
-                update_frequency: formData.updateFrequency,
-                communication_mode: formData.communicationMode,
-                support_areas: formData.supportAreas,
+            if (authData.user) {
+                // 2. Create Profile (Role: Member)
+                // Check if profile exists (sometimes triggered automatically)
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: authData.user.id,
+                        email: formData.email,
+                        full_name: formData.customerName,
+                        role: 'member'
+                    });
 
-                emergency_contact_name: formData.emergencyContactName,
-                emergency_relationship: formData.emergencyRelationship,
-                emergency_contact_number: formData.emergencyContactNumber,
-                emergency_permission: formData.emergencyPermission,
-                authorized_person: formData.authorizedPerson,
+                if (profileError) console.error("Profile creation warning:", profileError);
 
-                payment_mode: formData.paymentMode,
-                cheque_number: formData.chequeNumber,
-                payment_date: formData.paymentDate || null,
-                bank_name: formData.bankName,
+                // 3. Create Lead / Application
+                const payload = {
+                    // Link to created user
+                    created_by: authData.user.id,
 
-                declaration_info: formData.declarationInfo,
-                declaration_rules: formData.declarationRules,
+                    customer_name: formData.customerName,
+                    age: formData.age ? parseInt(formData.age) : null,
+                    address: formData.address,
+                    phone_number: formData.phone,
+                    email: formData.email,
+                    registration_type: formData.registrationType,
 
-                status: 'new',
-                payment_status: 'pending'
-            };
+                    member_name: formData.memberName || formData.customerName,
+                    relative_name: formData.relativeName,
+                    relationship: formData.relationship,
+                    relative_phone: formData.relativePhone,
+                    relative_email: formData.relativeEmail,
 
-            // Note: File upload logic for photos would go here (upload to storage -> get URL -> add to payload.photo_url_member)
-            // Skipping actual file upload for this step unless bucket is confirmed, assuming text URL or handled later.
+                    update_frequency: formData.updateFrequency,
+                    communication_mode: formData.communicationMode,
+                    support_areas: formData.supportAreas,
 
-            const { error } = await supabase.from('leads').insert([payload]);
-            if (error) throw error;
+                    emergency_contact_name: formData.emergencyContactName,
+                    emergency_relationship: formData.emergencyRelationship,
+                    emergency_contact_number: formData.emergencyContactNumber,
+                    emergency_permission: formData.emergencyPermission,
+                    authorized_person: formData.authorizedPerson,
 
-            setSuccess(true);
+                    payment_mode: formData.paymentMode,
+                    cheque_number: formData.chequeNumber,
+                    payment_date: formData.paymentDate || null,
+                    bank_name: formData.bankName,
+
+                    declaration_info: formData.declarationInfo,
+                    declaration_rules: formData.declarationRules,
+
+                    status: 'new',
+                    payment_status: 'pending'
+                };
+
+                const { error: leadError } = await supabase.from('leads').insert([payload]);
+                if (leadError) throw leadError;
+
+                setSuccess(true);
+            }
         } catch (err) {
             console.error(err);
             alert("Submission failed: " + err.message);
@@ -360,13 +390,15 @@ function RegistrationForm() {
                             <CheckCircle2 className="h-6 w-6 text-green-600" />
                         </div>
                     </div>
-                    <h3 className="text-xl font-bold text-green-900">Application Submitted!</h3>
+                    <h3 className="text-xl font-bold text-green-900">Account Created & Application Submitted!</h3>
                     <p className="text-green-700 mt-2">
-                        Thank you for your application. We will review it and contact you soon.
+                        Your account has been created. You can now login to track your membership.
                     </p>
-                    <Button onClick={() => setSuccess(false)} variant="outline" className="mt-6 border-green-600 text-green-700 hover:bg-green-100">
-                        Submit Another
-                    </Button>
+                    <div className="flex justify-center gap-4 mt-6">
+                        <Button onClick={() => navigate('/login')} className="bg-green-600 hover:bg-green-700">
+                            Login Now
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         )
@@ -375,14 +407,50 @@ function RegistrationForm() {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>Details of Person to be Enrolled</CardTitle>
-                <CardDescription>All fields marked * are required.</CardDescription>
+                <CardTitle>Create Account & Apply</CardTitle>
+                <CardDescription>Fill in your details to create an account and apply for membership.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-8">
 
+                    {/* Section 0: Account Info */}
+                    <div className="p-4 bg-slate-50 rounded-lg space-y-4 border">
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-primary" /> Account Credentials
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Email Address *</Label>
+                                <Input name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="you@example.com" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Password *</Label>
+                                <div className="relative">
+                                    <Input
+                                        name="password"
+                                        type={showPassword ? "text" : "password"}
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        required
+                                        placeholder="Create a password"
+                                        minLength={6}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Min. 6 characters</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Section 1: Basic Info */}
                     <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Personal Details</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Full Name *</Label>
@@ -403,22 +471,18 @@ function RegistrationForm() {
                                 <Input name="phone" value={formData.phone} onChange={handleInputChange} required />
                             </div>
                             <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input name="email" type="email" value={formData.email} onChange={handleInputChange} />
+                                <Label>Membership Type</Label>
+                                <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="individual">Individual</SelectItem>
+                                        <SelectItem value="couple">Couple</SelectItem>
+                                        <SelectItem value="family">Family</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Membership Type</Label>
-                            <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="individual">Individual</SelectItem>
-                                    <SelectItem value="couple">Couple</SelectItem>
-                                    <SelectItem value="family">Family</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
                     </div>
 
@@ -461,6 +525,7 @@ function RegistrationForm() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        {/* ... Checkboxes same as before ... */}
                         <div className="space-y-2">
                             <Label>Mode of Communication</Label>
                             <div className="flex gap-4">
@@ -522,10 +587,6 @@ function RegistrationForm() {
                                 onCheckedChange={(checked) => handleInputChange({ target: { name: 'emergencyPermission', type: 'checkbox', checked } })}
                             />
                             <Label htmlFor="permission">I give permission to contact this person in case of an emergency.</Label>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Authorized Person (if any)</Label>
-                            <Input name="authorizedPerson" value={formData.authorizedPerson} onChange={handleInputChange} placeholder="Name of person authorized to act on behalf" />
                         </div>
                     </div>
 
@@ -593,7 +654,7 @@ function RegistrationForm() {
                     </div>
 
                     <Button type="submit" className="w-full text-lg h-12" disabled={loading}>
-                        {loading ? 'Submitting Application...' : 'Submit Application'}
+                        {loading ? 'Creating Account...' : 'Create Account & Submit'}
                     </Button>
                 </form>
             </CardContent>
