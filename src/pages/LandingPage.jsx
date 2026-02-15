@@ -28,6 +28,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 export default function LandingPage() {
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState('individual');
+
+    const handlePlanSelect = (plan) => {
+        setSelectedPlan(plan);
+        document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+    };
 
     return (
         <div className="min-h-screen bg-background font-sans anti-aliased">
@@ -143,7 +149,7 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" variant="outline" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Individual</Button>
+                                <Button className="w-full" variant="outline" onClick={() => handlePlanSelect('individual')}>Choose Individual</Button>
                             </CardFooter>
                         </Card>
 
@@ -166,7 +172,7 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full font-bold shadow-md" size="lg" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Couple</Button>
+                                <Button className="w-full font-bold shadow-md" size="lg" onClick={() => handlePlanSelect('couple')}>Choose Couple</Button>
                             </CardFooter>
                         </Card>
                     </div>
@@ -183,7 +189,7 @@ export default function LandingPage() {
                         </p>
                     </div>
 
-                    <RegistrationForm />
+                    <RegistrationForm selectedPlan={selectedPlan} />
                 </div>
             </section>
 
@@ -220,8 +226,9 @@ function FeatureCard({ icon: Icon, title, description }) {
     )
 }
 
-function RegistrationForm() {
+function RegistrationForm({ selectedPlan }) {
     const navigate = useNavigate();
+    const [agents, setAgents] = useState([]);
     const [formData, setFormData] = useState({
         // Auth
         password: '',
@@ -232,7 +239,8 @@ function RegistrationForm() {
         address: '',
         phone: '',
         email: '',
-        registrationType: 'individual',
+        registrationType: selectedPlan || 'individual',
+        agentId: '',
 
         // Members
         memberName: '',
@@ -265,6 +273,25 @@ function RegistrationForm() {
         declarationInfo: false,
         declarationRules: false,
     });
+
+    React.useEffect(() => {
+        if (selectedPlan) {
+            setFormData(prev => ({ ...prev, registrationType: selectedPlan }));
+        }
+    }, [selectedPlan]);
+
+    React.useEffect(() => {
+        // Fetch agents (telecaller, marketing_lead, manager)
+        const fetchAgents = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, full_name, role')
+                .in('role', ['telecaller', 'marketing_lead', 'manager']);
+
+            if (data) setAgents(data);
+        };
+        fetchAgents();
+    }, []);
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -339,6 +366,7 @@ function RegistrationForm() {
                     phone_number: formData.phone,
                     email: formData.email,
                     registration_type: formData.registrationType,
+                    agent_id: formData.agentId || null,
 
                     member_name: formData.memberName || formData.customerName,
                     relative_name: formData.relativeName,
@@ -445,6 +473,24 @@ function RegistrationForm() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">Min. 6 characters</p>
                             </div>
+                        </div>
+
+                        {/* Agent Selection */}
+                        <div className="space-y-2">
+                            <Label>Agent / Referral Code (Optional)</Label>
+                            <Select value={formData.agentId} onValueChange={(val) => handleSelectChange('agentId', val)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Agent" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {agents.map((agent) => (
+                                        <SelectItem key={agent.id} value={agent.id}>
+                                            {agent.full_name || agent.email} ({agent.role})
+                                        </SelectItem>
+                                    ))}
+                                    {agents.length === 0 && <SelectItem value="none" disabled>No agents found</SelectItem>}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
