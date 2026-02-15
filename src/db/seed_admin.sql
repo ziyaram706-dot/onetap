@@ -5,8 +5,8 @@
 -- 1. Enable pgcrypto for password hashing if not already enabled
 create extension if not exists "pgcrypto";
 
--- 2. Insert into auth.users (This requires valid permissions, run in Supabase SQL Editor)
--- We use ON CONFLICT DO NOTHING to avoid errors if run multiple times
+-- 2. Insert into auth.users (Safe Insert without ON CONFLICT)
+-- We use INSERT ... SELECT ... WHERE NOT EXISTS to avoid constraint errors
 INSERT INTO auth.users (
     instance_id,
     id,
@@ -25,9 +25,10 @@ INSERT INTO auth.users (
     email_change,
     email_change_token_new,
     recovery_token
-) VALUES (
+)
+SELECT
     '00000000-0000-0000-0000-000000000000',
-    '00000000-0000-0000-0000-000000000001', -- Fixed UUID for easy reference
+    uuid_generate_v4(), -- Generate a new random UUID (or use a fixed one if you prefer, but random is safer if ID constraint issues arise)
     'authenticated',
     'authenticated',
     'admin@onetap.com',
@@ -43,15 +44,19 @@ INSERT INTO auth.users (
     '',
     '',
     ''
-) ON CONFLICT (email) DO NOTHING;
+WHERE NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE email = 'admin@onetap.com'
+);
 
 -- 3. Insert into public.profiles
--- We force the ID to match the one we just created
+-- We look up the ID we just inserted (or the existing one)
 INSERT INTO public.profiles (id, email, full_name, role)
-VALUES (
-    (SELECT id FROM auth.users WHERE email = 'admin@onetap.com'),
-    'admin@onetap.com',
+SELECT 
+    id,
+    email, 
     'Super System Admin',
     'super_admin'
-) ON CONFLICT (id) DO UPDATE 
+FROM auth.users 
+WHERE email = 'admin@onetap.com'
+ON CONFLICT (id) DO UPDATE 
 SET role = 'super_admin'; -- Ensure they are super_admin if they already exist
