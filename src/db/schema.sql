@@ -25,7 +25,7 @@ create table if not exists leads (
   assigned_to uuid references profiles(id),
   created_by uuid references profiles(id),
   medical_history text,
-  registration_type text check (registration_type in ('individual', 'couple', 'family')),
+  registration_type text check (registration_type in ('myself', 'family', 'agent', 'individual', 'couple')),
   agent_id uuid references profiles(id),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

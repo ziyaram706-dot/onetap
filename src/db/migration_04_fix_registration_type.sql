@@ -6,4 +6,4 @@
 ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_registration_type_check;
 
 ALTER TABLE leads ADD CONSTRAINT leads_registration_type_check 
-CHECK (registration_type IN ('individual', 'couple', 'family'));
+CHECK (registration_type IN ('myself', 'family', 'agent', 'individual', 'couple'));

@@ -31,7 +31,14 @@ export default function LandingPage() {
     const [selectedPlan, setSelectedPlan] = useState('individual');
 
     const handlePlanSelect = (plan) => {
+        const typeMap = {
+            'individual': 'myself',
+            'couple': 'family',
+            'family': 'family'
+        };
         setSelectedPlan(plan);
+        // We can't easily update the RegistrationForm internal state from here without moving it up
+        // But the RegistrationForm uses 'selectedPlan' prop to initialize its state.
         document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -239,7 +246,7 @@ function RegistrationForm({ selectedPlan }) {
         address: '',
         phone: '',
         email: '',
-        registrationType: selectedPlan || 'individual',
+        registrationType: selectedPlan === 'individual' ? 'myself' : (selectedPlan === 'couple' || selectedPlan === 'family' ? 'family' : 'myself'),
         agentId: '',
 
         // Members
@@ -569,9 +576,9 @@ function RegistrationForm({ selectedPlan }) {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="individual">Individual</SelectItem>
-                                        <SelectItem value="couple">Couple</SelectItem>
+                                        <SelectItem value="myself">Myself</SelectItem>
                                         <SelectItem value="family">Family</SelectItem>
+                                        <SelectItem value="agent">Agent</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
