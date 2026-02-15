@@ -46,7 +46,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* Desktop Nav */}
-                    <nav className="hidden md:flex gap-6 items-center">
+                    <nav className="hidden md:flex gap-6 items-center landing-nav">
                         <a href="#features" className="text-sm font-medium transition-colors hover:text-primary">Services</a>
                         <a href="#pricing" className="text-sm font-medium transition-colors hover:text-primary">Membership</a>
                         <a href="#contact" className="text-sm font-medium transition-colors hover:text-primary">Join Now</a>

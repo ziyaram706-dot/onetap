@@ -130,7 +130,7 @@ header {
     z-index: 100;
 }
 
-nav {
+.landing-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
