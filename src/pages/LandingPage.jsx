@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -15,37 +15,16 @@ import {
     Menu,
     X,
     CreditCard,
-    ArrowRight
+    ArrowRight,
+    MapPin,
+    Mail
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function LandingPage() {
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-    // Reusing the form logic but in a Dialog or separate page for better UI?
-    // For this "Shadcn Block" style, let's keep the landing page clean and Put the form in a Dialog or redirect to /register (which we already built!).
-    // Wait, the previous LandingPage HAD the form embedded. 
-    // The user wants "get styles from the site".
-    // I will link the "Join Now" to the `/register` page we made (which uses Shadcn Cards).
-    // Or I can keep a "Quick Contact" form here.
-
-    // Let's build a proper Landing Page structure:
-    // 1. Navbar
-    // 2. Hero with Image
-    // 3. Features Grid
-    // 4. Testimonials / Stats
-    // 5. Pricing Cards
-    // 6. Footer
 
     return (
         <div className="min-h-screen bg-background font-sans anti-aliased">
@@ -61,9 +40,9 @@ export default function LandingPage() {
                     <nav className="hidden md:flex gap-6 items-center">
                         <a href="#features" className="text-sm font-medium transition-colors hover:text-primary">Services</a>
                         <a href="#pricing" className="text-sm font-medium transition-colors hover:text-primary">Membership</a>
-                        <a href="#about" className="text-sm font-medium transition-colors hover:text-primary">About</a>
+                        <a href="#contact" className="text-sm font-medium transition-colors hover:text-primary">Join Now</a>
                         <Button variant="ghost" onClick={() => navigate('/login')}>Login</Button>
-                        <Button onClick={() => navigate('/register')}>Join Now</Button>
+                        <Button onClick={() => document.getElementById('contact').scrollIntoView()}>Get Started</Button>
                     </nav>
 
                     {/* Mobile Nav Toggle */}
@@ -77,8 +56,8 @@ export default function LandingPage() {
                     <div className="md:hidden border-b bg-background p-4 space-y-4">
                         <a href="#features" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Services</a>
                         <a href="#pricing" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Membership</a>
+                        <a href="#contact" className="block text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Join Now</a>
                         <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/login')}>Login</Button>
-                        <Button className="w-full" onClick={() => navigate('/register')}>Join Now</Button>
                     </div>
                 )}
             </header>
@@ -95,8 +74,8 @@ export default function LandingPage() {
                         we provide the family-like support your loved ones deserve.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <Button size="lg" onClick={() => navigate('/register')} className="gap-2">
-                            Get Started <ArrowRight className="h-4 w-4" />
+                        <Button size="lg" onClick={() => document.getElementById('contact').scrollIntoView()} className="gap-2">
+                            Join Now <ArrowRight className="h-4 w-4" />
                         </Button>
                         <Button size="lg" variant="outline" onClick={() => document.getElementById('features').scrollIntoView()}>
                             Explore Services
@@ -151,17 +130,17 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Pricing */}
+            {/* Pricing - Added extra padding to top to avoid overlap */}
             <section id="pricing" className="py-24">
                 <div className="container">
-                    <div className="text-center max-w-2xl mx-auto mb-16">
+                    <div className="text-center max-w-2xl mx-auto mb-20">
                         <h2 className="text-3xl font-bold tracking-tight mb-4">Simple, Transparent Membership</h2>
                         <p className="text-muted-foreground">
                             Choose a plan that fits your needs. Membership unlocks priority access and exclusive discounts.
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-4">
                         <Card className="border-2 hover:border-primary transition-colors">
                             <CardHeader>
                                 <CardTitle className="text-2xl">Individual</CardTitle>
@@ -177,11 +156,11 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" onClick={() => navigate('/register')}>Choose Individual</Button>
+                                <Button className="w-full" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Individual</Button>
                             </CardFooter>
                         </Card>
 
-                        <Card className="border-2 border-primary shadow-lg relative">
+                        <Card className="border-2 border-primary shadow-lg relative mt-6 md:mt-0">
                             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
                                 MOST POPULAR
                             </div>
@@ -199,10 +178,24 @@ export default function LandingPage() {
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" onClick={() => navigate('/register')}>Choose Couple</Button>
+                                <Button className="w-full" onClick={() => document.getElementById('contact').scrollIntoView()}>Choose Couple</Button>
                             </CardFooter>
                         </Card>
                     </div>
+                </div>
+            </section>
+
+            {/* Registration Form Section */}
+            <section id="contact" className="bg-slate-50 py-24">
+                <div className="container max-w-3xl">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold tracking-tight mb-4">Join Golden Moments</h2>
+                        <p className="text-muted-foreground">
+                            Ready to get started? Fill out the form below and we will get in touch with you shortly.
+                        </p>
+                    </div>
+
+                    <RegistrationForm />
                 </div>
             </section>
 
@@ -223,22 +216,16 @@ export default function LandingPage() {
                         <ul className="space-y-2 text-sm">
                             <li><a href="#" className="hover:text-white">Home</a></li>
                             <li><a href="#about" className="hover:text-white">About Us</a></li>
-                            <li><a href="#services" className="hover:text-white">Services</a></li>
+                            <li><a href="#features" className="hover:text-white">Services</a></li>
                             <li><a href="#contact" className="hover:text-white">Contact</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-4">Legal</h4>
-                        <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-                            <li><a href="#" className="hover:text-white">Terms of Service</a></li>
                         </ul>
                     </div>
                     <div>
                         <h4 className="font-bold text-white mb-4">Contact</h4>
                         <ul className="space-y-2 text-sm">
                             <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +91 7012649326</li>
-                            <li className="flex items-center gap-2">📧 dmaid20@gmail.com</li>
+                            <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> dmaid20@gmail.com</li>
+                            <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Kerala, India</li>
                         </ul>
                     </div>
                 </div>
@@ -264,4 +251,129 @@ function FeatureCard({ icon: Icon, title, description }) {
             </CardContent>
         </Card>
     )
+}
+
+// Embedded Registration Form Component
+function RegistrationForm() {
+    const [formData, setFormData] = useState({
+        customerName: '',
+        phoneNumber: '',
+        medicalHistory: '',
+        registrationType: 'myself',
+        agentId: '',
+    });
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+
+    const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSelectChange = (name, value) => {
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const payload = {
+                customer_name: formData.customerName,
+                phone_number: formData.phoneNumber,
+                medical_history: formData.medicalHistory,
+                registration_type: formData.registrationType,
+                status: 'new',
+                payment_status: 'pending'
+            };
+
+            const { error } = await supabase.from('leads').insert([payload]);
+            if (error) throw error;
+
+            setSuccess(true);
+            setFormData({
+                customerName: '',
+                phoneNumber: '',
+                medicalHistory: '',
+                registrationType: 'myself',
+                agentId: '',
+            });
+        } catch (err) {
+            console.error("Error submitting:", err);
+            alert("Submission failed. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (success) {
+        return (
+            <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-6 text-center">
+                    <div className="mb-4 flex justify-center">
+                        <div className="rounded-full bg-green-100 p-3">
+                            <CheckCircle2 className="h-6 w-6 text-green-600" />
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-green-900">Application Submitted!</h3>
+                    <p className="text-green-700 mt-2">
+                        Thank you for registering. Our team will contact you shortly to finalize your membership.
+                    </p>
+                    <Button onClick={() => setSuccess(false)} variant="outline" className="mt-6 border-green-600 text-green-700 hover:bg-green-100">
+                        Submit Another
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Member Registration</CardTitle>
+                <CardDescription>Enter your details to request membership.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Full Name</Label>
+                            <Input name="customerName" value={formData.customerName} onChange={handleInputChange} required placeholder="John Doe" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Phone Number</Label>
+                            <Input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="+91 9876543210" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Registering For</Label>
+                        <Select value={formData.registrationType} onValueChange={(val) => handleSelectChange('registrationType', val)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="myself">Myself</SelectItem>
+                                <SelectItem value="family">Family Member</SelectItem>
+                                <SelectItem value="agent">I am an Agent</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Medical History / Special Needs (Optional)</Label>
+                        <Textarea
+                            name="medicalHistory"
+                            value={formData.medicalHistory}
+                            onChange={handleInputChange}
+                            placeholder="Any medical conditions or specific requirements we should know about..."
+                            rows={3}
+                        />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? 'Submitting...' : 'Submit Application'}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
 }
