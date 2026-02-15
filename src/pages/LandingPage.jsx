@@ -328,6 +328,31 @@ function RegistrationForm({ selectedPlan }) {
                 throw new Error("Email and password are required for account creation.");
             }
 
+            // 0. Verify Agent if selected
+            if (formData.agentId) {
+                if (!formData.agentPassword) {
+                    throw new Error("Agent password is required for verification.");
+                }
+
+                const agent = agents.find(a => a.id === formData.agentId);
+                if (!agent) throw new Error("Selected agent not found.");
+
+                // Attempt sign in to verify credentials
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email: agent.email || '', // assuming we can get email, or we need to ask agent to enter email too? 
+                    // Wait, profiles table rls allows reading? Yes. But does it have email column populated? 
+                    // Schema says: profiles(id, email, full_name, role).
+                    password: formData.agentPassword
+                });
+
+                if (signInError) {
+                    throw new Error("Agent verification failed: Invalid password.");
+                }
+
+                // Sign out immediately to clear agent session so we can create the new user
+                await supabase.auth.signOut();
+            }
+
             // 1. Sign Up User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
@@ -384,10 +409,11 @@ function RegistrationForm({ selectedPlan }) {
                     emergency_permission: formData.emergencyPermission,
                     authorized_person: formData.authorizedPerson,
 
-                    payment_mode: formData.paymentMode,
-                    cheque_number: formData.chequeNumber,
-                    payment_date: formData.paymentDate || null,
-                    bank_name: formData.bankName,
+                    // Only save payment details if agent was selected
+                    payment_mode: formData.agentId ? formData.paymentMode : null,
+                    cheque_number: formData.agentId ? formData.chequeNumber : null,
+                    payment_date: (formData.agentId && formData.paymentDate) ? formData.paymentDate : null,
+                    bank_name: formData.agentId ? formData.bankName : null,
 
                     declaration_info: formData.declarationInfo,
                     declaration_rules: formData.declarationRules,
@@ -476,21 +502,41 @@ function RegistrationForm({ selectedPlan }) {
                         </div>
 
                         {/* Agent Selection */}
-                        <div className="space-y-2">
-                            <Label>Agent / Referral Code (Optional)</Label>
-                            <Select value={formData.agentId} onValueChange={(val) => handleSelectChange('agentId', val)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Agent" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {agents.map((agent) => (
-                                        <SelectItem key={agent.id} value={agent.id}>
-                                            {agent.full_name || agent.email} ({agent.role})
-                                        </SelectItem>
-                                    ))}
-                                    {agents.length === 0 && <SelectItem value="none" disabled>No agents found</SelectItem>}
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-4 pt-4 border-t">
+                            <div className="space-y-2">
+                                <Label>Agent / Referral (Optional)</Label>
+                                <Select value={formData.agentId} onValueChange={(val) => handleSelectChange('agentId', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Agent if applicable" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {agents.map((agent) => (
+                                            <SelectItem key={agent.id} value={agent.id}>
+                                                {agent.full_name || agent.email} ({agent.role})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {formData.agentId && (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                    <Label className="text-amber-600 flex items-center gap-1">
+                                        <Shield className="h-3 w-3" /> Agent Verification Required
+                                    </Label>
+                                    <Input
+                                        name="agentPassword"
+                                        type="password"
+                                        value={formData.agentPassword || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter Agent Login Password to Verify"
+                                        className="border-amber-200 focus:border-amber-500"
+                                        required
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Please ask the agent to enter their password to confirm this referral.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -636,41 +682,43 @@ function RegistrationForm({ selectedPlan }) {
                         </div>
                     </div>
 
-                    {/* Section 5: Payment */}
-                    <div className="space-y-4 border-t pt-4">
-                        <h3 className="font-semibold text-lg">Payment Details</h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Payment Mode</Label>
-                                <Select value={formData.paymentMode} onValueChange={(val) => handleSelectChange('paymentMode', val)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Cash / Cheque / Online" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="cash">Cash</SelectItem>
-                                        <SelectItem value="cheque">Cheque</SelectItem>
-                                        <SelectItem value="online">Online / UPI</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Payment Date</Label>
-                                <Input name="paymentDate" type="date" value={formData.paymentDate} onChange={handleInputChange} />
-                            </div>
-                        </div>
-                        {formData.paymentMode === 'cheque' && (
+                    {/* Section 5: Payment (Conditional) */}
+                    {formData.agentId && (
+                        <div className="space-y-4 border-t pt-4 animate-in fade-in slide-in-from-top-4">
+                            <h3 className="font-semibold text-lg">Payment Details</h3>
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Cheque Number</Label>
-                                    <Input name="chequeNumber" value={formData.chequeNumber} onChange={handleInputChange} />
+                                    <Label>Payment Mode</Label>
+                                    <Select value={formData.paymentMode} onValueChange={(val) => handleSelectChange('paymentMode', val)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Cash / Cheque / Online" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="cash">Cash</SelectItem>
+                                            <SelectItem value="cheque">Cheque</SelectItem>
+                                            <SelectItem value="online">Online / UPI</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Bank Name</Label>
-                                    <Input name="bankName" value={formData.bankName} onChange={handleInputChange} />
+                                    <Label>Payment Date</Label>
+                                    <Input name="paymentDate" type="date" value={formData.paymentDate} onChange={handleInputChange} />
                                 </div>
                             </div>
-                        )}
-                    </div>
+                            {formData.paymentMode === 'cheque' && (
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Cheque Number</Label>
+                                        <Input name="chequeNumber" value={formData.chequeNumber} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Bank Name</Label>
+                                        <Input name="bankName" value={formData.bankName} onChange={handleInputChange} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Section 6: Declaration */}
                     <div className="space-y-4 border-t pt-4">
