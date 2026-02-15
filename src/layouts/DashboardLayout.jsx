@@ -78,12 +78,12 @@ function Sidebar({ role, signOut, navigate, isMobile, closeMobileMenu }) {
                 </h1>
                 <p className="text-xs text-slate-400 mt-1 capitalize">Role: {currentRole.replace('_', ' ')}</p>
             </div>
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <nav className="flex-1 flex flex-col p-4 space-y-2 overflow-y-auto">
                 {filteredNavItems.map((item) => (
                     <Link
                         key={item.href}
                         to={item.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.href
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${location.pathname === item.href
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-slate-800 text-slate-300'
                             }`}
