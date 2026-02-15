@@ -17,7 +17,10 @@ import {
     User,
     Phone,
     Mail,
-    Info
+    Info,
+    Camera,
+    Upload,
+    X
 } from 'lucide-react';
 
 export default function RegistrationForm({ selectedPlan = 'individual', isAdminFlow = false, onSuccess }) {
@@ -68,15 +71,27 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
         paymentDate: '',
         bankName: '',
 
+        // Photos
+        memberPhoto: null,
+        spousePhoto: null,
+        memberPhotoUrl: '',
+        spousePhotoUrl: '',
+
         // Declaration
         declarationInfo: false,
         declarationRules: false
     });
 
+    const [photoPreviews, setPhotoPreviews] = useState({
+        member: null,
+        spouse: null
+    });
+
     // Sync registrationType when selectedPlan prop changes
     useEffect(() => {
         if (selectedPlan) {
-            const mappedType = selectedPlan === 'individual' ? 'myself' : (selectedPlan === 'couple' || selectedPlan === 'family' ? 'family' : 'myself');
+            // Standardize registrationType to match DB constraint: 'individual', 'couple', 'family'
+            const mappedType = selectedPlan === 'individual' ? 'individual' : (selectedPlan === 'couple' ? 'couple' : (selectedPlan === 'family' ? 'family' : 'individual'));
             setFormData(prev => ({ ...prev, registrationType: mappedType }));
         }
     }, [selectedPlan]);
@@ -98,18 +113,43 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
         const { name, value, type, checked } = e.target;
         if (type === 'checkbox') {
             if (name === 'supportAreas' || name === 'communicationMode') {
-                const currentArray = formData[name] || [];
-                if (checked) {
-                    setFormData({ ...prev, [name]: [...currentArray, value] });
-                } else {
-                    setFormData({ ...prev, [name]: currentArray.filter(item => item !== value) });
-                }
+                setFormData(prev => {
+                    const currentArray = prev[name] || [];
+                    if (checked) {
+                        return { ...prev, [name]: [...currentArray, value] };
+                    } else {
+                        return { ...prev, [name]: currentArray.filter(item => item !== value) };
+                    }
+                });
             } else {
-                setFormData({ ...prev, [name]: checked });
+                setFormData(prev => ({ ...prev, [name]: checked }));
             }
         } else {
-            setFormData({ ...prev, [name]: value });
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handlePhotoChange = (e, type) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert("File size should be less than 5MB");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreviews(prev => ({ ...prev, [type]: reader.result }));
+            };
+            reader.readAsDataURL(file);
+
+            setFormData(prev => ({ ...prev, [`${type}Photo`]: file }));
+        }
+    };
+
+    const removePhoto = (type) => {
+        setPhotoPreviews(prev => ({ ...prev, [type]: null }));
+        setFormData(prev => ({ ...prev, [`${type}Photo`]: null }));
     };
 
     // Helper for shadcn checkbox/select which don't pass standard events
@@ -128,11 +168,45 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
         });
     };
 
+    const uploadPhoto = async (file, type) => {
+        if (!file) return null;
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `leads/${fileName}`;
+
+        const { error: uploadError, data } = await supabase.storage
+            .from('photos')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error(`Error uploading ${type} photo:`, uploadError);
+            return null;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(filePath);
+
+        return publicUrl;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            let memberPhotoUrl = '';
+            let spousePhotoUrl = '';
+
+            // 0. Handle Photo Uploads
+            if (formData.memberPhoto) {
+                memberPhotoUrl = await uploadPhoto(formData.memberPhoto, 'member');
+            }
+            if (formData.spousePhoto) {
+                spousePhotoUrl = await uploadPhoto(formData.spousePhoto, 'spouse');
+            }
+
             // Case 1: Public Flow (Landing Page) - Needs Auth Signup
             if (!isAdminFlow) {
                 if (!formData.email || !formData.password) {
@@ -190,12 +264,12 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
                     if (profileError) console.error("Profile creation error:", profileError);
 
                     // 3. Create Lead
-                    await insertLead(authData.user.id);
+                    await insertLead(authData.user.id, memberPhotoUrl, spousePhotoUrl);
                 }
             }
             // Case 2: Admin Flow (Dashboard) - Just insert lead
             else {
-                await insertLead(null);
+                await insertLead(null, memberPhotoUrl, spousePhotoUrl);
             }
 
             setSuccess(true);
@@ -208,7 +282,7 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
         }
     };
 
-    const insertLead = async (userId) => {
+    const insertLead = async (userId, memberPhotoUrl, spousePhotoUrl) => {
         const payload = {
             created_by: userId || null,
             customer_name: formData.customerName,
@@ -235,16 +309,19 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
             emergency_permission: formData.emergencyPermission,
             authorized_person: formData.authorizedPerson,
 
-            payment_mode: formData.agentId ? formData.paymentMode : null,
-            cheque_number: formData.agentId ? formData.chequeNumber : null,
-            payment_date: (formData.agentId && formData.paymentDate) ? formData.paymentDate : null,
-            bank_name: formData.agentId ? formData.bankName : null,
+            payment_mode: (formData.agentId || isAdminFlow) ? formData.paymentMode : null,
+            cheque_number: (formData.agentId || isAdminFlow) ? formData.chequeNumber : null,
+            payment_date: ((formData.agentId || isAdminFlow) && formData.paymentDate) ? formData.paymentDate : null,
+            bank_name: (formData.agentId || isAdminFlow) ? formData.bankName : null,
+
+            photo_url_member: memberPhotoUrl,
+            photo_url_spouse: spousePhotoUrl,
 
             declaration_info: formData.declarationInfo,
             declaration_rules: formData.declarationRules,
 
             status: 'new',
-            payment_status: formData.agentId ? 'received' : 'pending'
+            payment_status: (formData.agentId || isAdminFlow) ? 'received' : 'pending'
         };
 
         const { error: leadError } = await supabase.from('leads').insert([payload]);
@@ -393,11 +470,79 @@ export default function RegistrationForm({ selectedPlan = 'individual', isAdminF
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="myself">Myself</SelectItem>
+                                <SelectItem value="individual">Individual</SelectItem>
+                                <SelectItem value="couple">Couple</SelectItem>
                                 <SelectItem value="family">Family</SelectItem>
                                 <SelectItem value="agent">Agent</SelectItem>
+                                <SelectItem value="myself">Myself (Legacy)</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                </div>
+
+                {/* Photo Upload Section */}
+                <div className="space-y-4 pt-4 border-t">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Camera className="h-5 w-5 text-primary" /> Profile Photo(s)
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* Member Photo */}
+                        <div className="space-y-2">
+                            <Label>{(formData.registrationType === 'couple' || formData.registrationType === 'family') ? 'Member Photo' : 'Your Photo'} *</Label>
+                            <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-slate-50 transition-colors relative">
+                                {photoPreviews.member ? (
+                                    <div className="relative group">
+                                        <img src={photoPreviews.member} alt="Member preview" className="h-32 w-32 object-cover rounded-full border-4 border-white shadow-md" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removePhoto('member')}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="cursor-pointer flex flex-col items-center gap-2">
+                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                            <Upload className="h-6 w-6" />
+                                        </div>
+                                        <span className="text-sm text-muted-foreground font-medium">Click to upload photo</span>
+                                        <span className="text-xs text-muted-foreground">PNG, JPG up to 5MB</span>
+                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoChange(e, 'member')} />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Spouse Photo - Only for Couple/Family */}
+                        {(formData.registrationType === 'couple' || formData.registrationType === 'family') && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-right-4">
+                                <Label>Spouse Photo *</Label>
+                                <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-slate-50 transition-colors relative">
+                                    {photoPreviews.spouse ? (
+                                        <div className="relative group">
+                                            <img src={photoPreviews.spouse} alt="Spouse preview" className="h-32 w-32 object-cover rounded-full border-4 border-white shadow-md" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removePhoto('spouse')}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="cursor-pointer flex flex-col items-center gap-2">
+                                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                <Upload className="h-6 w-6" />
+                                            </div>
+                                            <span className="text-sm text-muted-foreground font-medium">Click to upload spouse photo</span>
+                                            <span className="text-xs text-muted-foreground">PNG, JPG up to 5MB</span>
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoChange(e, 'spouse')} />
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
