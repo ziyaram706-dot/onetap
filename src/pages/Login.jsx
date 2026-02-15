@@ -20,9 +20,23 @@ export default function Login() {
         setError('');
 
         try {
-            const { error } = await signIn({ email, password });
+            const { data: { user }, error } = await signIn({ email, password });
             if (error) throw error;
-            navigate('/dashboard');
+
+            if (user) {
+                // Fetch role to determine redirect
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.role === 'member') {
+                    navigate('/user');
+                } else {
+                    navigate('/dashboard');
+                }
+            }
         } catch (err) {
             setError(err.message);
         } finally {

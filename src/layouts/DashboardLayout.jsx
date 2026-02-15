@@ -55,12 +55,15 @@ export default function DashboardLayout() {
         },
         {
             label: 'Registration Form',
-            href: '/register', // Public link but good to have handy? Or internal generic form?
-            // The prompt says "registered registerations from website should also visible".
-            // Maybe "Add Lead" is better for internal.
-            // Let's keep it simple.
+            href: '/register',
             icon: ClipboardList,
-            roles: ['super_admin', 'manager', 'telecaller'] // They can add leads too?
+            roles: ['super_admin', 'manager', 'telecaller']
+        },
+        {
+            label: 'Service Requests',
+            href: '/dashboard/requests',
+            icon: ClipboardList,
+            roles: ['super_admin', 'manager']
         }
     ];
 
@@ -80,8 +83,8 @@ export default function DashboardLayout() {
                         key={item.href}
                         to={item.href}
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.href
-                                ? 'bg-primary text-primary-foreground'
-                                : 'hover:bg-slate-800 text-slate-300'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-slate-800 text-slate-300'
                             }`}
                         onClick={() => setIsMobileMenuOpen(false)}
                     >
